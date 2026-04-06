@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>X Post Simulator</title>
+<title>おさまりX</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231d9bf0'/%3E%3Ctext x='16' y='23' text-anchor='middle' font-size='18' font-family='sans-serif' font-weight='bold' fill='white'%3E収%3C/text%3E%3C/svg%3E">
 <style>
 /* ======== TOKENS ======== */
 [data-theme="dark"]{
@@ -137,7 +138,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
 .pool-empty{font-size:12px;color:var(--text3);padding:10px 0}
 
 /* ======== SELECTED STRIP ======== */
-.sel-strip{display:flex;gap:8px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:3px}
+.sel-strip{display:flex;gap:8px;flex-wrap:nowrap;overflow-x:auto;padding:8px 8px 8px 8px;margin:-8px}
 .sel-strip::-webkit-scrollbar{height:3px}
 .sel-strip::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 .sel-item{
@@ -157,19 +158,19 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
   padding:1px 5px;border-radius:4px;line-height:1.5;pointer-events:none;
 }
 .sel-remove{
-  position:absolute;top:-6px;right:-6px;
-  width:18px;height:18px;border-radius:50%;
-  background:var(--red);color:#fff;border:none;
+  position:absolute;top:-8px;right:-8px;
+  width:20px;height:20px;border-radius:50%;
+  background:var(--red);color:#fff;border:2px solid var(--bg2);
   font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;
-  opacity:0;transition:opacity .15s;z-index:5;line-height:1;
+  opacity:0;transition:opacity .15s;z-index:10;line-height:1;
 }
 .sel-item:hover .sel-remove{opacity:1}
 .sel-crop{
-  position:absolute;bottom:-6px;right:-6px;
-  width:18px;height:18px;border-radius:50%;
-  background:var(--accent);color:#fff;border:none;
+  position:absolute;bottom:-8px;right:-8px;
+  width:20px;height:20px;border-radius:50%;
+  background:var(--accent);color:#fff;border:2px solid var(--bg2);
   font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;
-  opacity:0;transition:opacity .15s;z-index:5;line-height:1;
+  opacity:0;transition:opacity .15s;z-index:10;line-height:1;
 }
 .sel-item:hover .sel-crop{opacity:1}
 .sel-empty{font-size:12px;color:var(--text3);padding:8px 0}
@@ -233,8 +234,11 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
   width:40px;height:40px;border-radius:50%;flex-shrink:0;
   background:linear-gradient(135deg,#1d9bf0,#5bc8ff);
   display:flex;align-items:center;justify-content:center;
-  font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:#fff;
+  font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:#fff;
+  cursor:pointer;user-select:none;transition:transform .15s,box-shadow .15s;
+  overflow:hidden;
 }
+.x-avatar:hover{transform:scale(1.08);box-shadow:0 0 0 3px var(--glow)}
 .x-names{flex:1}
 .x-dname{font-size:15px;font-weight:700;color:var(--text)}
 .x-handle{font-size:13px;color:var(--text2)}
@@ -242,9 +246,10 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
 .x-text{
   font-size:15px;color:var(--text);
   padding:7px 13px 10px;line-height:1.55;word-break:break-word;
+  white-space:pre-wrap;
   transition:color .2s;
 }
-.x-text.ph{color:var(--text3)}
+.x-text.ph{color:var(--text3);white-space:normal}
 
 /* ---- X image grids ----
    実際のXの表示比率:
@@ -375,7 +380,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
 <header class="hdr">
   <div class="logo">
     <div class="logo-ico"><svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.259 5.63L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></div>
-    Post Sim
+    おさまりX
   </div>
   <div class="hdr-sp"></div>
   <div class="theme-sw" id="themeSw">
@@ -460,7 +465,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
       </div>
       <div>
         <div class="x-post-hd">
-          <div class="x-avatar">あ</div>
+          <div class="x-avatar" id="xAvatar" title="クリックでアイコン変更">🐱</div>
           <div class="x-names">
             <div class="x-dname">あなたのアカウント</div>
             <div class="x-handle">@yourhandle · 今</div>
@@ -630,6 +635,29 @@ function selDndSetup() {
     });
   });
 }
+
+// ========= AVATAR RANDOM =========
+const ANIMALS = ['🐱','🐶','🐼','🦊','🐨','🦁','🐯','🐻','🐺','🦝','🐮','🐷','🐸','🐙','🦋','🦜','🐧','🦩','🐝','🦔','🦦','🦥','🐬','🦄','🐳','🦒','🦓','🐘','🦘','🦫','🐿️','🦭','🦑','🐊','🦕'];
+const AVATAR_COLORS = [
+  ['#f43f5e','#fb7185'],['#ec4899','#f472b6'],['#a855f7','#c084fc'],
+  ['#8b5cf6','#a78bfa'],['#6366f1','#818cf8'],['#3b82f6','#60a5fa'],
+  ['#0ea5e9','#38bdf8'],['#06b6d4','#22d3ee'],['#14b8a6','#2dd4bf'],
+  ['#10b981','#34d399'],['#22c55e','#4ade80'],['#84cc16','#a3e635'],
+  ['#eab308','#facc15'],['#f97316','#fb923c'],['#ef4444','#f87171'],
+  ['#d946ef','#e879f9'],['#1d9bf0','#4db8ff'],['#ff6b6b','#ffa07a'],
+];
+let lastAnimalIdx = 0, lastColorIdx = -1;
+document.getElementById('xAvatar').addEventListener('click', () => {
+  let idx; do { idx = Math.floor(Math.random() * ANIMALS.length); } while (idx === lastAnimalIdx);
+  let ci;  do { ci  = Math.floor(Math.random() * AVATAR_COLORS.length); } while (ci === lastColorIdx);
+  lastAnimalIdx = idx; lastColorIdx = ci;
+  const el = document.getElementById('xAvatar');
+  const [c1, c2] = AVATAR_COLORS[ci];
+  el.style.background = `linear-gradient(135deg,${c1},${c2})`;
+  el.style.transform = 'scale(1.3) rotate(8deg)';
+  el.textContent = ANIMALS[idx];
+  setTimeout(() => { el.style.transform = ''; }, 200);
+});
 
 // ========= TEXT =========
 document.getElementById('postTa').addEventListener('input', function() {
