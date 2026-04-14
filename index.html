@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja" data-theme="dark">
+<html lang="ja" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -225,7 +225,14 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
 
 /* ======== X PREVIEW ======== */
 .preview-col{position:sticky;top:72px}
-.x-card{background:var(--xbg);border:1px solid var(--xline);border-radius:14px;overflow:hidden;transition:background .2s,border-color .2s}
+.x-card{
+  background:var(--xbg);
+  border:1px solid var(--xline);
+  border-radius:16px;
+  overflow:hidden;
+  transition:background .2s,border-color .2s;
+  font-family:-apple-system,'Segoe UI','Noto Sans JP',sans-serif;
+}
 .x-card-hd{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--xline)}
 .x-pill{
   font-family:'Syne',sans-serif;font-size:10px;font-weight:700;
@@ -234,72 +241,152 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
   background:rgba(29,155,240,0.12);color:var(--accent);
   border:1px solid rgba(29,155,240,0.22);white-space:nowrap;
 }
-.x-post-hd{display:flex;gap:10px;padding:13px 13px 0}
+
+/* Xの2カラムレイアウト:
+   左カラム=アバター(52px固定)、右カラム=テキスト+画像+アクション
+   padding: 12px 16px（Xの実測値）
+*/
+.x-post-body{
+  display:flex;
+  gap:12px;
+  padding:12px 16px 0;
+}
+.x-left{
+  flex-shrink:0;
+  width:40px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
 .x-avatar{
-  width:40px;height:40px;border-radius:50%;flex-shrink:0;
+  width:40px;height:40px;border-radius:50%;
   background:linear-gradient(135deg,#1d9bf0,#5bc8ff);
   display:flex;align-items:center;justify-content:center;
-  font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:#fff;
-  cursor:pointer;user-select:none;transition:transform .15s,box-shadow .15s;
-  overflow:hidden;
+  font-size:20px;color:#fff;
+  cursor:pointer;user-select:none;
+  transition:transform .15s,box-shadow .15s;
+  overflow:hidden;flex-shrink:0;
 }
 .x-avatar:hover{transform:scale(1.08);box-shadow:0 0 0 3px var(--glow)}
-.x-names{flex:1}
+.x-right{flex:1;min-width:0;padding-bottom:12px}
+
+/* 名前行 */
+.x-name-row{
+  display:flex;align-items:center;gap:4px;
+  margin-bottom:1px;line-height:1.3;
+}
 .x-dname{font-size:15px;font-weight:700;color:var(--text)}
-.x-handle{font-size:13px;color:var(--text2)}
-.x-more{color:var(--text2);font-size:18px;padding:0 3px;cursor:default}
+.x-handle{font-size:15px;color:var(--text2);white-space:nowrap}
+.x-dot{font-size:15px;color:var(--text2)}
+.x-time{font-size:15px;color:var(--text2)}
+.x-more{color:var(--text2);font-size:18px;margin-left:auto;cursor:default;line-height:1;padding:0 2px;flex-shrink:0}
+
+/* テキスト */
 .x-text{
   font-size:15px;color:var(--text);
-  padding:7px 13px 10px;line-height:1.55;word-break:break-word;
+  margin:2px 0 10px;
+  line-height:1.55;word-break:break-word;
   white-space:pre-wrap;
-  transition:color .2s;
 }
 .x-text.ph{color:var(--text3);white-space:normal}
 
-/* ---- X image grids ----
-   実際のXの表示比率:
-   1枚: 16:9 (全幅)
-   2枚: 各 8:9 (縦長2列)
-   3枚: 左=8:9縦長, 右2枚=各16:9横長積み
-   4枚: 2×2, 各16:9
-*/
-.x-imgs{overflow:hidden}
-.g1 .xi{width:100%;aspect-ratio:16/9;object-fit:cover;display:block}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:2px}
+/* 画像エリア: right-col内、マージンなし */
+.x-imgs{margin-bottom:10px}
+
+/* 1枚: 左寄せ・実際の比率・トリミングなし */
+.g1{display:flex;justify-content:flex-start}
+.g1 .xi{
+  display:block;max-width:100%;max-height:500px;
+  width:auto;height:auto;
+  border-radius:14px;
+}
+
+/* 2枚 */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:2px;border-radius:14px;overflow:hidden}
 .g2 .xi{width:100%;aspect-ratio:8/9;object-fit:cover;display:block}
-.g3{display:grid;grid-template-columns:1fr 1fr;gap:2px}
-.g3-l .xi{width:100%;aspect-ratio:8/9;object-fit:cover;display:block;height:100%}
-.g3-l{height:100%}
-.g3-r{display:flex;flex-direction:column;gap:2px}
-.g3-r .xi{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;flex:1}
-.g4{display:grid;grid-template-columns:1fr 1fr;gap:2px}
+
+/* 3枚: 左=8:9縦長, 右2枚=各16:9横長
+   padding-bottomトリックで左の高さを確定、右2枚がそれを均等分割 */
+.g3{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:2px;
+  border-radius:14px;
+  overflow:hidden;
+}
+.g3-l{
+  position:relative;
+  /* 幅の112.5% = 8:9比率 (9/8=1.125) */
+  padding-bottom:112.5%;
+  overflow:hidden;
+}
+.g3-l .xi{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+.g3-r{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+.g3-r-img{
+  flex:1;
+  position:relative;
+  overflow:hidden;
+  /* min-height:0でflexbox内aspect-ratio問題を回避 */
+  min-height:0;
+}
+.g3-r-img .xi{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+
+/* 4枚 */
+.g4{display:grid;grid-template-columns:1fr 1fr;gap:2px;border-radius:14px;overflow:hidden}
 .g4 .xi{width:100%;aspect-ratio:16/9;object-fit:cover;display:block}
 
 .x-ph{
-  height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:8px;background:var(--bg3);margin:0 13px;border-radius:10px;
+  height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:8px;background:var(--bg3);border-radius:14px;
   transition:background .2s;
 }
 .x-ph-ico{width:36px;height:36px;border-radius:8px;background:var(--bg4);display:flex;align-items:center;justify-content:center}
 .x-ph-ico svg{width:18px;height:18px;stroke:var(--text3);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .x-ph-t{font-size:11px;color:var(--text3)}
 
+/* アクション: right-col内で左寄せ */
 .x-acts{
-  display:flex;justify-content:space-between;
-  padding:8px 11px;border-top:1px solid var(--xline);margin-top:9px;
+  display:flex;
+  margin-left:-8px;
 }
 .x-act{
-  display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2);
-  padding:4px 7px;border-radius:20px;cursor:pointer;transition:background .15s,color .15s;
+  display:flex;align-items:center;gap:5px;
+  font-size:13px;color:var(--text2);
+  padding:6px 8px;border-radius:9999px;
+  cursor:pointer;transition:color .15s;
+  flex:1;
+  background:none;border:none;font-family:inherit;
 }
-.x-act:hover{background:rgba(29,155,240,0.08);color:var(--accent)}
-.x-act svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.x-act:hover{color:var(--accent)}
+.x-act svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.x-act span{pointer-events:none}
+.x-act.on{color:var(--act-on,var(--accent))}
+.x-act.on svg{stroke:var(--act-on,var(--accent))}
 
 .x-lbar{
   display:flex;align-items:center;gap:6px;
   padding:7px 13px;border-top:1px solid var(--xline);background:var(--bg3);
   transition:background .2s;
 }
+.x-ldesc{font-size:11px;color:var(--text3)}
 .x-ldesc{font-size:11px;color:var(--text3)}
 
 /* ======== CROP MODAL ======== */
@@ -392,8 +479,8 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
   </div>
   <div class="hdr-sp"></div>
   <div class="theme-sw" id="themeSw">
-    <div class="tsw on" data-t="dark">🌙 ダーク</div>
-    <div class="tsw" data-t="light">☀️ ライト</div>
+    <div class="tsw" data-t="dark">🌙 ダーク</div>
+    <div class="tsw on" data-t="light">☀️ ライト</div>
   </div>
 </header>
 
@@ -471,28 +558,32 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
         <span class="card-title" style="color:var(--text2)">X プレビュー</span>
         <span class="x-pill" id="xPill">画像なし</span>
       </div>
-      <div>
-        <div class="x-post-hd">
+      <div class="x-post-body">
+        <div class="x-left">
           <div class="x-avatar" id="xAvatar" title="クリックでアイコン変更">🐱</div>
-          <div class="x-names">
-            <div class="x-dname">あなたのアカウント</div>
-            <div class="x-handle">@yourhandle · 今</div>
-          </div>
-          <div class="x-more">···</div>
         </div>
-        <div class="x-text ph" id="xText">テキストを入力するとここに表示されます。</div>
-        <div class="x-imgs" id="xImgs">
-          <div class="x-ph">
-            <div class="x-ph-ico"><svg viewBox="0 0 24 24"><path d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M18.75 9.75h.008v.008h-.008V9.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM4.5 19.5h15a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5h-15A1.5 1.5 0 003 6v12a1.5 1.5 0 001.5 1.5z"/></svg></div>
-            <div class="x-ph-t">画像を選択するとプレビューが表示されます</div>
+        <div class="x-right">
+          <div class="x-name-row">
+            <span class="x-dname">あなたのアカウント</span>
+            <span class="x-handle">@yourhandle</span>
+            <span class="x-dot">·</span>
+            <span class="x-time">今</span>
+            <span class="x-more">···</span>
           </div>
-        </div>
-        <div class="x-acts">
-          <div class="x-act"><svg viewBox="0 0 24 24"><path d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 01-.923 1.785A5.969 5.969 0 006 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337z"/></svg><span>0</span></div>
-          <div class="x-act"><svg viewBox="0 0 24 24"><path d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3"/></svg><span>0</span></div>
-          <div class="x-act"><svg viewBox="0 0 24 24"><path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/></svg><span>0</span></div>
-          <div class="x-act"><svg viewBox="0 0 24 24"><path d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg></div>
-          <div class="x-act"><svg viewBox="0 0 24 24"><path d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg></div>
+          <div class="x-text ph" id="xText">テキストを入力するとここに表示されます。</div>
+          <div class="x-imgs" id="xImgs">
+            <div class="x-ph">
+              <div class="x-ph-ico"><svg viewBox="0 0 24 24"><path d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M18.75 9.75h.008v.008h-.008V9.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM4.5 19.5h15a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5h-15A1.5 1.5 0 003 6v12a1.5 1.5 0 001.5 1.5z"/></svg></div>
+              <div class="x-ph-t">画像を選択するとプレビューが表示されます</div>
+            </div>
+          </div>
+          <div class="x-acts">
+            <button class="x-act" id="actReply" data-act="actReply"><svg viewBox="0 0 24 24"><path d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 01-.923 1.785A5.969 5.969 0 006 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337z"/></svg><span>0</span></button>
+            <button class="x-act" id="actRt" data-act="actRt" style="--act-on:#00ba7c"><svg viewBox="0 0 24 24"><path d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3"/></svg><span>0</span></button>
+            <button class="x-act" id="actLike" data-act="actLike" style="--act-on:#f91880"><svg viewBox="0 0 24 24"><path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/></svg><span>0</span></button>
+            <button class="x-act"><svg viewBox="0 0 24 24"><path d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg></button>
+            <button class="x-act"><svg viewBox="0 0 24 24"><path d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg></button>
+          </div>
         </div>
       </div>
       <div class="x-lbar">
@@ -561,6 +652,30 @@ let dg = null;
 let dndSrc = null;
 let previewRafId = null;
 
+// ========= ACTION COUNTERS =========
+const actCounts = {actReply:0, actRt:0, actLike:0};
+const ACT_COLORS = {actReply:'#1d9bf0', actRt:'#00ba7c', actLike:'#f91880'};
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('[data-act]');
+  if (!btn) return;
+  const id = btn.dataset.act;
+  if (!(id in actCounts)) return;
+  actCounts[id]++;
+  btn.querySelector('span').textContent = actCounts[id];
+  btn.classList.add('on');
+  btn.style.setProperty('--act-on', ACT_COLORS[id]);
+  // ハートはSVGをベタ塗り
+  if (id === 'actLike') {
+    const svg = btn.querySelector('svg');
+    svg.style.fill = '#f91880';
+    svg.style.stroke = '#f91880';
+  }
+  btn.animate(
+    [{transform:'scale(1)'},{transform:'scale(1.35)'},{transform:'scale(1)'}],
+    {duration:250, easing:'cubic-bezier(0.34,1.56,0.64,1)'}
+  );
+});
+
 // ========= THEME =========
 document.getElementById('themeSw').addEventListener('click', e => {
   const btn = e.target.closest('.tsw'); if (!btn) return;
@@ -594,13 +709,9 @@ function addFiles(files) {
 
 // ========= POOL CLICK (toggle selection) =========
 function toggleSelect(id) {
-  const idx = selected.indexOf(id);
-  if (idx !== -1) {
-    selected.splice(idx, 1);
-  } else {
-    if (selected.length >= 4) return; // max 4
-    selected.push(id);
-  }
+  // 同じ画像でも最大4スロットまで追加可能
+  if (selected.length >= 4) return;
+  selected.push(id);
   render();
 }
 
@@ -695,11 +806,10 @@ function renderPool() {
   grid.innerHTML = '';
   if (!pool.length) { grid.appendChild(Object.assign(document.createElement('div'), {className:'pool-empty',id:'poolEmpty',textContent:'まだ画像がありません'})); return; }
   pool.forEach(item => {
-    const selIdx = selected.indexOf(item.id);
-    const isSelected = selIdx !== -1;
+    const selCount = selected.filter(s => s === item.id).length;
     const div = document.createElement('div');
-    div.className = 'pool-item' + (isSelected ? ' selected' : '');
-    if (isSelected) div.dataset.order = selIdx + 1;
+    div.className = 'pool-item' + (selCount > 0 ? ' selected' : '');
+    if (selCount > 0) div.dataset.order = selCount > 1 ? `×${selCount}` : selected.indexOf(item.id) + 1;
     div.innerHTML = `
       <img class="pool-img" src="${item.src}" alt="" draggable="false">
       <button class="pool-del" title="削除">✕</button>
@@ -748,9 +858,11 @@ function renderPreview() {
   const n = srcs.length;
   const img = s => `<img class="xi" src="${s}" alt="">`;
   let html = '';
-  if (n === 1) html = `<div class="g1">${img(srcs[0])}</div>`;
-  else if (n === 2) html = `<div class="g2">${img(srcs[0])}${img(srcs[1])}</div>`;
-  else if (n === 3) html = `<div class="g3"><div class="g3-l">${img(srcs[0])}</div><div class="g3-r">${img(srcs[1])}${img(srcs[2])}</div></div>`;
+  if (n === 1) {
+    area.innerHTML = `<div class="g1"><img class="xi" src="${srcs[0]}" alt=""></div>`;
+    return;
+  } else if (n === 2) html = `<div class="g2">${img(srcs[0])}${img(srcs[1])}</div>`;
+  else if (n === 3) html = `<div class="g3"><div class="g3-l"><img class="xi" src="${srcs[0]}" alt=""></div><div class="g3-r"><div class="g3-r-img"><img class="xi" src="${srcs[1]}" alt=""></div><div class="g3-r-img"><img class="xi" src="${srcs[2]}" alt=""></div></div></div>`;
   else html = `<div class="g4">${srcs.map(img).join('')}</div>`;
   area.innerHTML = html;
 }
@@ -760,7 +872,7 @@ function renderLayoutInfo() {
   const labels = ['画像なし','1枚','2枚','3枚','4枚'];
   const descs = [
     '画像を選択するとレイアウト情報が表示されます',
-    '全幅・16:9（横長）で1枚表示',
+    '全幅・画像の実際の比率で表示（トリミングなし）',
     '8:9（縦長）×2列で表示',
     '左:8:9縦長 ／ 右上・右下:16:9横長',
     '16:9（横長）の2×2グリッド',
