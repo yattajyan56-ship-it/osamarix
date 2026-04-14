@@ -643,14 +643,19 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
 
 <script>
 // ========= STATE =========
-const pool = [];    // {id, name, src, origSrc}
-const selected = []; // pool ids in order (max 4)
-let cropPoolId = null; // which pool item being cropped
+const pool = [];     // {id, name, src, origSrc}
+const slots = [];    // {slotId, poolId, src, origSrc, name}  ← 各スロット独立
+let cropSlotId = null; // トリミング対象のslotId (nullならpoolIdから)
+let cropPoolId = null; // トリミング対象のpoolId
 let cropNI = null, cropAR = null, cScale = 1;
 let cs = {x:0,y:0,w:0,h:0};
 let dg = null;
 let dndSrc = null;
 let previewRafId = null;
+let slotCounter = 0;
+
+function newSlotId() { return 'slot_' + (++slotCounter); }
+function getSlot(slotId) { return slots.find(s => s.slotId === slotId); }
 
 // ========= ACTION COUNTERS =========
 const actCounts = {actReply:0, actRt:0, actLike:0};
@@ -707,50 +712,41 @@ function addFiles(files) {
   });
 }
 
-// ========= POOL CLICK (toggle selection) =========
-function toggleSelect(id) {
-  // 同じ画像でも最大4スロットまで追加可能
-  if (selected.length >= 4) return;
-  selected.push(id);
+// ========= POOL / SLOT OPS =========
+function toggleSelect(poolId) {
+  if (slots.length >= 4) return;
+  const item = pool.find(p => p.id === poolId); if (!item) return;
+  slots.push({ slotId: newSlotId(), poolId, src: item.src, origSrc: item.origSrc, name: item.name });
   render();
 }
 
-function removeFromPool(id) {
-  const pi = pool.findIndex(p => p.id === id);
+function removeFromPool(poolId) {
+  const pi = pool.findIndex(p => p.id === poolId);
   if (pi !== -1) pool.splice(pi, 1);
-  const si = selected.indexOf(id);
-  if (si !== -1) selected.splice(si, 1);
+  for (let i = slots.length - 1; i >= 0; i--)
+    if (slots[i].poolId === poolId) slots.splice(i, 1);
   render();
 }
 
-// ========= SELECTED STRIP DND =========
+function removeSlot(slotId) {
+  const i = slots.findIndex(s => s.slotId === slotId);
+  if (i !== -1) slots.splice(i, 1);
+  render();
+}
+
 function selDndSetup() {
-  const items = document.querySelectorAll('.sel-item');
-  items.forEach(item => {
-    item.addEventListener('dragstart', e => {
-      dndSrc = +item.dataset.sidx;
-      item.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'move';
-    });
-    item.addEventListener('dragend', () => {
-      item.classList.remove('dragging');
-      document.querySelectorAll('.sel-item').forEach(el => el.classList.remove('drag-over'));
-    });
-    item.addEventListener('dragover', e => {
-      e.preventDefault();
-      const i = +item.dataset.sidx;
-      if (dndSrc !== null && dndSrc !== i) item.classList.add('drag-over');
-    });
+  document.querySelectorAll('.sel-item').forEach(item => {
+    item.addEventListener('dragstart', e => { dndSrc = +item.dataset.sidx; item.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; });
+    item.addEventListener('dragend', () => { item.classList.remove('dragging'); document.querySelectorAll('.sel-item').forEach(el=>el.classList.remove('drag-over')); });
+    item.addEventListener('dragover', e => { e.preventDefault(); if (dndSrc !== +item.dataset.sidx) item.classList.add('drag-over'); });
     item.addEventListener('dragleave', () => item.classList.remove('drag-over'));
     item.addEventListener('drop', e => {
-      e.preventDefault();
-      item.classList.remove('drag-over');
+      e.preventDefault(); item.classList.remove('drag-over');
       const i = +item.dataset.sidx;
       if (dndSrc === null || dndSrc === i) return;
-      const moved = selected.splice(dndSrc, 1)[0];
-      selected.splice(i, 0, moved);
-      dndSrc = null;
-      render();
+      const moved = slots.splice(dndSrc, 1)[0];
+      slots.splice(i, 0, moved);
+      dndSrc = null; render();
     });
   });
 }
@@ -790,93 +786,68 @@ document.getElementById('postTa').addEventListener('input', function() {
 });
 
 // ========= RENDER =========
-function render() {
-  renderPool();
-  renderSelected();
-  renderPreview();
-  renderDownloads();
-  renderLayoutInfo();
-}
+function render() { renderPool(); renderSelected(); renderPreview(); renderDownloads(); renderLayoutInfo(); }
 
 function getPoolItem(id) { return pool.find(p => p.id === id); }
 
 function renderPool() {
   const grid = document.getElementById('poolGrid');
-  const empty = document.getElementById('poolEmpty');
   grid.innerHTML = '';
-  if (!pool.length) { grid.appendChild(Object.assign(document.createElement('div'), {className:'pool-empty',id:'poolEmpty',textContent:'まだ画像がありません'})); return; }
+  if (!pool.length) { grid.appendChild(Object.assign(document.createElement('div'),{className:'pool-empty',textContent:'まだ画像がありません'})); return; }
   pool.forEach(item => {
-    const selCount = selected.filter(s => s === item.id).length;
+    const selCount = slots.filter(s => s.poolId === item.id).length;
     const div = document.createElement('div');
     div.className = 'pool-item' + (selCount > 0 ? ' selected' : '');
-    if (selCount > 0) div.dataset.order = selCount > 1 ? `×${selCount}` : selected.indexOf(item.id) + 1;
-    div.innerHTML = `
-      <img class="pool-img" src="${item.src}" alt="" draggable="false">
-      <button class="pool-del" title="削除">✕</button>
-      <button class="pool-crop" title="トリミング">✂</button>`;
+    if (selCount > 0) div.dataset.order = selCount > 1 ? `×${selCount}` : String(slots.findIndex(s => s.poolId === item.id) + 1);
+    div.innerHTML = `<img class="pool-img" src="${item.src}" alt="" draggable="false"><button class="pool-del" title="削除">✕</button><button class="pool-crop" title="トリミング">✂</button>`;
     div.querySelector('.pool-img').addEventListener('click', () => toggleSelect(item.id));
     div.querySelector('.pool-del').addEventListener('click', e => { e.stopPropagation(); removeFromPool(item.id); });
-    div.querySelector('.pool-crop').addEventListener('click', e => { e.stopPropagation(); openCrop(item.id); });
+    div.querySelector('.pool-crop').addEventListener('click', e => { e.stopPropagation(); openCropForPool(item.id); });
     grid.appendChild(div);
   });
 }
 
 function renderSelected() {
   const strip = document.getElementById('selStrip');
-  const empty = document.getElementById('selEmpty');
   strip.innerHTML = '';
-  if (!selected.length) {
-    strip.appendChild(Object.assign(document.createElement('div'), {className:'sel-empty',id:'selEmpty',textContent:'上の画像をクリックして投稿に追加してください'}));
+  if (!slots.length) {
+    strip.appendChild(Object.assign(document.createElement('div'),{className:'sel-empty',textContent:'上の画像をクリックして投稿に追加してください'}));
+    for (let i=0;i<4;i++) document.getElementById('d'+i).classList.remove('on');
+    document.getElementById('cntLbl').textContent = '0 / 4 枚選択中';
     return;
   }
-  selected.forEach((id, i) => {
-    const item = getPoolItem(id); if (!item) return;
+  slots.forEach((slot, i) => {
     const div = document.createElement('div');
     div.className = 'sel-item';
     div.dataset.sidx = i;
     div.draggable = true;
-    div.innerHTML = `
-      <div class="sel-inner"><img src="${item.src}" alt="" draggable="false"><div class="sel-num">${i+1}</div></div>
-      <button class="sel-remove" title="外す">✕</button>
-      <button class="sel-crop" title="トリミング">✂</button>`;
-    div.querySelector('.sel-remove').addEventListener('click', e => { e.stopPropagation(); selected.splice(i,1); render(); });
-    div.querySelector('.sel-crop').addEventListener('click', e => { e.stopPropagation(); openCrop(id); });
+    div.innerHTML = `<div class="sel-inner"><img src="${slot.src}" alt="" draggable="false"><div class="sel-num">${i+1}</div></div><button class="sel-remove" title="外す">✕</button><button class="sel-crop" title="トリミング">✂</button>`;
+    div.querySelector('.sel-remove').addEventListener('click', e => { e.stopPropagation(); removeSlot(slot.slotId); });
+    div.querySelector('.sel-crop').addEventListener('click', e => { e.stopPropagation(); openCropForSlot(slot.slotId); });
     strip.appendChild(div);
   });
   selDndSetup();
-  for (let i = 0; i < 4; i++) document.getElementById('d'+i).classList.toggle('on', i < selected.length);
-  document.getElementById('cntLbl').textContent = selected.length + ' / 4 枚選択中';
+  for (let i=0;i<4;i++) document.getElementById('d'+i).classList.toggle('on', i < slots.length);
+  document.getElementById('cntLbl').textContent = slots.length + ' / 4 枚選択中';
 }
 
 function renderPreview() {
   const area = document.getElementById('xImgs');
-  if (!selected.length) {
-    area.innerHTML = `<div class="x-ph"><div class="x-ph-ico"><svg viewBox="0 0 24 24" stroke="var(--text3)" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M18.75 9.75h.008v.008h-.008V9.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM4.5 19.5h15a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5h-15A1.5 1.5 0 003 6v12a1.5 1.5 0 001.5 1.5z"/></svg></div><div class="x-ph-t">画像を選択するとプレビューが表示されます</div></div>`;
-    return;
-  }
-  const srcs = selected.map(id => { const p = getPoolItem(id); return p ? p.src : ''; }).filter(Boolean);
+  if (!slots.length) { area.innerHTML=`<div class="x-ph"><div class="x-ph-ico"><svg viewBox="0 0 24 24" stroke="var(--text3)" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M18.75 9.75h.008v.008h-.008V9.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM4.5 19.5h15a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5h-15A1.5 1.5 0 003 6v12a1.5 1.5 0 001.5 1.5z"/></svg></div><div class="x-ph-t">画像を選択するとプレビューが表示されます</div></div>`; return; }
+  const srcs = slots.map(s => s.src);
   const n = srcs.length;
   const img = s => `<img class="xi" src="${s}" alt="">`;
-  let html = '';
-  if (n === 1) {
-    area.innerHTML = `<div class="g1"><img class="xi" src="${srcs[0]}" alt=""></div>`;
-    return;
-  } else if (n === 2) html = `<div class="g2">${img(srcs[0])}${img(srcs[1])}</div>`;
-  else if (n === 3) html = `<div class="g3"><div class="g3-l"><img class="xi" src="${srcs[0]}" alt=""></div><div class="g3-r"><div class="g3-r-img"><img class="xi" src="${srcs[1]}" alt=""></div><div class="g3-r-img"><img class="xi" src="${srcs[2]}" alt=""></div></div></div>`;
-  else html = `<div class="g4">${srcs.map(img).join('')}</div>`;
+  if (n===1) { area.innerHTML=`<div class="g1"><img class="xi" src="${srcs[0]}" alt=""></div>`; return; }
+  let html = n===2 ? `<div class="g2">${img(srcs[0])}${img(srcs[1])}</div>`
+    : n===3 ? `<div class="g3"><div class="g3-l"><img class="xi" src="${srcs[0]}" alt=""></div><div class="g3-r"><div class="g3-r-img"><img class="xi" src="${srcs[1]}" alt=""></div><div class="g3-r-img"><img class="xi" src="${srcs[2]}" alt=""></div></div></div>`
+    : `<div class="g4">${srcs.map(img).join('')}</div>`;
   area.innerHTML = html;
 }
 
 function renderLayoutInfo() {
-  const n = selected.length;
+  const n = slots.length;
   const labels = ['画像なし','1枚','2枚','3枚','4枚'];
-  const descs = [
-    '画像を選択するとレイアウト情報が表示されます',
-    '全幅・画像の実際の比率で表示（トリミングなし）',
-    '8:9（縦長）×2列で表示',
-    '左:8:9縦長 ／ 右上・右下:16:9横長',
-    '16:9（横長）の2×2グリッド',
-  ];
+  const descs = ['画像を選択するとレイアウト情報が表示されます','全幅・実際の比率で表示','8:9（縦長）×2列','左:8:9縦長 ／ 右上・右下:16:9横長','16:9（横長）の2×2グリッド'];
   document.getElementById('xPill').textContent = labels[n];
   document.getElementById('xPill2').textContent = labels[n];
   document.getElementById('xDesc').textContent = descs[n];
@@ -885,25 +856,24 @@ function renderLayoutInfo() {
 function renderDownloads() {
   const card = document.getElementById('dlCard');
   const list = document.getElementById('dlList');
-  if (!selected.length) { card.style.display = 'none'; return; }
-  card.style.display = 'block';
-  list.innerHTML = selected.map((id, i) => {
-    const item = getPoolItem(id); if (!item) return '';
-    return `<div class="dl-row" style="animation-delay:${i*.05}s">
-      <div class="dl-th"><img src="${item.src}" alt=""></div>
-      <div class="dl-info"><div class="dl-name">画像${i+1}：${item.name}</div><div class="dl-meta">元画質で保存</div></div>
-      <button class="dl-btn" onclick="dlImg('${id}',${i})"><svg viewBox="0 0 24 24"><path d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>保存</button>
-    </div>`;
-  }).join('');
+  if (!slots.length) { card.style.display='none'; return; }
+  card.style.display='block';
+  list.innerHTML = slots.map((slot,i) => `
+    <div class="dl-row" style="animation-delay:${i*.05}s">
+      <div class="dl-th"><img src="${slot.src}" alt=""></div>
+      <div class="dl-info"><div class="dl-name">画像${i+1}：${slot.name}</div><div class="dl-meta">元画質で保存</div></div>
+      <button class="dl-btn" data-dlslot="${slot.slotId}"><svg viewBox="0 0 24 24"><path d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>保存</button>
+    </div>`).join('');
 }
 
-function dlImg(id, i) {
-  const item = getPoolItem(id); if (!item) return;
-  const a = document.createElement('a');
-  a.href = item.src;
-  a.download = item.name || ('image_'+(i+1)+'.png');
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-dlslot]'); if (!b) return;
+  const slot = slots.find(s => s.slotId === b.dataset.dlslot); if (!slot) return;
+  const a = document.createElement('a'); a.href=slot.src; a.download=slot.name||'image.png';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
-}
+});
+
+function dlImg(){}
 
 // ========= CROP =========
 const overlay = document.getElementById('overlay');
@@ -933,9 +903,23 @@ function applyAR() {
   updateCsel(); schedulePreview();
 }
 
-function openCrop(id) {
-  cropPoolId = id;
-  const item = getPoolItem(id); if (!item) return;
+// slotIdを指定してそのスロット専用のトリミング
+function openCropForSlot(slotId) {
+  cropSlotId = slotId;
+  cropPoolId = null;
+  const slot = slots.find(s => s.slotId === slotId); if (!slot) return;
+  _startCrop(slot.origSrc);
+}
+
+// poolIdを指定（プールの画像のorigSrcでトリミング → プールのsrcを更新、全スロットには反映しない）
+function openCropForPool(poolId) {
+  cropSlotId = null;
+  cropPoolId = poolId;
+  const item = pool.find(p => p.id === poolId); if (!item) return;
+  _startCrop(item.origSrc);
+}
+
+function _startCrop(srcUrl) {
   cropNI = new Image();
   cropNI.onload = () => {
     const maxW = Math.min(300, window.innerWidth / 2 - 60);
@@ -948,13 +932,10 @@ function openCrop(id) {
     cropCanvas.getContext('2d').drawImage(cropNI, 0, 0, cw, ch);
     cs = {x:0,y:0,w:cw,h:ch}; cropAR = null;
     document.querySelectorAll('.ar-btn').forEach(b => b.classList.toggle('on', b.dataset.ar==='free'));
-    updateCsel();
-    // Set preview canvas size
-    setPreviewSize();
-    schedulePreview();
+    updateCsel(); setPreviewSize(); schedulePreview();
     overlay.classList.add('open');
   };
-  cropNI.src = item.origSrc;
+  cropNI.src = srcUrl;
 }
 
 function setPreviewSize() {
@@ -1049,10 +1030,23 @@ function applyCrop() {
   const out = document.createElement('canvas');
   out.width=sw; out.height=sh;
   out.getContext('2d').drawImage(cropNI, sx,sy,sw,sh, 0,0,sw,sh);
-  const item = getPoolItem(cropPoolId); if (!item) { closeCrop(); return; }
-  const ext = (item.name.match(/\.(png|webp|jpg|jpeg)$/i)||['','.png'])[0].toLowerCase();
+  const name = cropSlotId
+    ? (slots.find(s=>s.slotId===cropSlotId)||{}).name
+    : (pool.find(p=>p.id===cropPoolId)||{}).name;
+  const ext = ((name||'').match(/\.(png|webp|jpg|jpeg)$/i)||['','.png'])[0].toLowerCase();
   const mime = ext==='.png'?'image/png':ext==='.webp'?'image/webp':'image/jpeg';
-  item.src = out.toDataURL(mime, 1.0);
+  const dataUrl = out.toDataURL(mime, 1.0);
+
+  if (cropSlotId) {
+    // スロット個別のsrcを更新（origSrcはそのまま保持）
+    const slot = slots.find(s => s.slotId === cropSlotId);
+    if (slot) slot.src = dataUrl;
+  } else if (cropPoolId) {
+    // プールのsrcを更新（このpoolIdのスロットも全部更新）
+    const item = pool.find(p => p.id === cropPoolId);
+    if (item) item.src = dataUrl;
+    slots.filter(s => s.poolId === cropPoolId).forEach(s => s.src = dataUrl);
+  }
   closeCrop(); render();
 }
 </script>
